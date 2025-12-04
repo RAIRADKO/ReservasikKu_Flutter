@@ -1,0 +1,49 @@
+name: reservasiku
+description: Aplikasi reservasi meja restoran dengan Flutter dan Supabase
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI Components & Icons
+  cupertino_icons: ^1.0.8
+  fluttertoast: ^8.2.8
+  
+  # Date & Time Handling
+  intl: ^0.20.2
+  flutter_datetime_picker_plus: ^2.2.0
+
+  # Backend & Data
+  supabase_flutter: ^2.8.1 # Update ke versi terbaru agar lebih stabil
+
+  # State Management
+  flutter_riverpod: ^2.6.1 # Update agar match dengan riverpod_lint baru
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # Code Generators
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.3
+
+  # Linting & Quality Control
+  # BAGIAN INI YANG MENYEBABKAN ERROR TADI, SUDAH DIPERBAIKI:
+  custom_lint: ^0.7.0 
+  riverpod_lint: ^2.6.2
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
