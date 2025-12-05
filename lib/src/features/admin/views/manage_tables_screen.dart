@@ -7,9 +7,9 @@ import '../../../widgets/custom_app_bar.dart';
 class ManageTablesScreen extends ConsumerStatefulWidget {
   const ManageTablesScreen({super.key});
 
-  @override
-  ConsumerState<ManageTablesScreenState> createState() =>
-      _ManageTablesScreenState();
+@override
+ConsumerState<ManageTablesScreen> createState() =>
+    _ManageTablesScreenState();
 }
 
 class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {

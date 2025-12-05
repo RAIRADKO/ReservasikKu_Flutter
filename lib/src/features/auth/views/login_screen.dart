@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:go_router/go_router.dart';
 import '../../../common/utils.dart';
 import '../../../providers/auth_provider.dart';
 import '../controllers/auth_controller.dart';
@@ -8,8 +8,8 @@ import '../controllers/auth_controller.dart';
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
-  @override
-  ConsumerState<LoginScreenState> createState() => _LoginScreenState();
+@override
+ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {

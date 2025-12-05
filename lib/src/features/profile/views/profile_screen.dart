@@ -10,8 +10,8 @@ import '../controllers/profile_controller.dart';
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
-  @override
-  ConsumerState<ProfileScreenState> createState() => _ProfileScreenState();
+@override
+ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
@@ -25,33 +25,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final authState = ref.read(authProvider);
-    if (authState.user == null) return;
+  final authState = ref.read(authProvider);
+  if (authState.user == null) return;
 
-    final userId = authState.user!.id;
-    final client = ref.read(supabaseProvider);
+  final userId = authState.user!.id;
+  final client = ref.read(supabaseProvider);
 
-    try {
-      final {data, error} = await client
-          .from('users')
-          .select('name, phone_number')
-          .eq('id', userId)
-          .single();
+  try {
+    final response = await client
+        .from('users')
+        .select('name, phone_number')
+        .eq('id', userId)
+        .single();
 
-      if (error == null && data != null) {
-        setState(() {
-          _formState = ProfileFormState(
-            name: data['name'] ?? '',
-            phone: data['phone_number'] ?? '',
-          );
-        });
-      }
-    } catch (e) {
+    setState(() {
+      _formState = ProfileFormState(
+        name: response['name'] ?? '',
+        phone: response['phone_number'] ?? '',
+      );
+    });
+  } catch (e) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memuat data profil: $e')),
       );
     }
   }
+}
+
+Future<void> _saveProfile() async {
+  if (!_formKey.currentState!.validate()) return;
+
+  final authState = ref.read(authProvider);
+  if (authState.user == null) return;
+
+  try {
+    final client = ref.read(supabaseProvider);
+    await client
+        .from('users')
+        .update({
+          'name': _formState.name.trim(),
+          'phone_number': _formState.phone.trim(),
+        })
+        .eq('id', authState.user!.id);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil berhasil diperbarui')),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memperbarui profil: $e')),
+      );
+    }
+  }
+}
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;

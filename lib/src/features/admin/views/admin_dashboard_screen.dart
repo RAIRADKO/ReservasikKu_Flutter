@@ -8,9 +8,9 @@ import '../../../widgets/custom_app_bar.dart';
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
-  @override
-  ConsumerState<AdminDashboardScreenState> createState() =>
-      _AdminDashboardScreenState();
+@override
+ConsumerState<AdminDashboardScreen> createState() =>
+    _AdminDashboardScreenState();
 }
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {

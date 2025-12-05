@@ -1,5 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../features/auth/views/login_screen.dart';
 import '../features/auth/views/register_screen.dart';
@@ -13,13 +13,11 @@ import '../features/admin/views/manage_reservations_screen.dart';
 import '../features/admin/views/manage_tables_screen.dart';
 import '../providers/auth_provider.dart';
 
-part 'app_router.g.dart';
-
-@Riverpod(keepAlive: true)
-GoRouter router(RouterRef ref) {
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+  
   return GoRouter(
     initialLocation: '/login',
-    refreshListenable: ref.watch(authProvider),
     routes: [
       GoRoute(
         path: '/login',
@@ -66,19 +64,17 @@ GoRouter router(RouterRef ref) {
       ),
     ],
     redirect: (context, state) {
-      final authState = ref.read(authProvider);
-      
       if (authState.isLoading) return null;
       
       final isAuth = authState.session != null;
-      final isLoggingIn = state.location == '/login' || state.location == '/register';
+      final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/register';
       
       if (!isAuth && !isLoggingIn) return '/login';
       if (isAuth && isLoggingIn) return '/home';
       
       // Redirect admin ke dashboard admin
       if (isAuth && authState.role == 'admin') {
-        if (state.location == '/home' || state.location == '/reservations' || state.location == '/profile') {
+        if (state.uri.path == '/home' || state.uri.path == '/reservations' || state.uri.path == '/profile') {
           return '/admin/dashboard';
         }
       }
@@ -86,4 +82,4 @@ GoRouter router(RouterRef ref) {
       return null;
     },
   );
-}
+});

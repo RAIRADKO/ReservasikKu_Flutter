@@ -42,7 +42,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final SupabaseClient client;
 
-  AuthNotifier(this.client) : super(const AuthState()) {
+  AuthNotifier(this.client) : super(AuthState()) {
     _init();
   }
 
@@ -50,18 +50,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     
     try {
-      await client.auth.getSession().then((value) {
-        if (value.error != null) {
-          throw Exception(value.error?.message);
-        }
-        
-        final session = value.data.session;
-        if (session != null) {
-          _loadUserData(session.user.id);
-        } else {
-          state = state.copyWith(isLoading: false);
-        }
-      });
+      final session = client.auth.currentSession;
+      if (session != null) {
+        await _loadUserData(session.user.id);
+        state = state.copyWith(
+          session: session,
+          user: session.user,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -71,18 +69,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _loadUserData(String userId) async {
-    final {data, error} = await client
-        .from('users')
-        .select('role')
-        .eq('id', userId)
-        .single();
+    try {
+      final response = await client
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .single();
 
-    if (error == null && data != null) {
       state = state.copyWith(
         isLoading: false,
-        role: data['role'] as String,
+        role: response['role'] as String,
       );
-    } else {
+    } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Gagal memuat data user',
@@ -94,14 +92,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     
     try {
-      final {data, error} = await client.auth.signInWithPassword(
+      final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      if (error != null) throw Exception(error.message);
-      
-      await _loadUserData(data.user!.id);
+      await _loadUserData(response.user!.id);
+      state = state.copyWith(
+        session: response.session,
+        user: response.user,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -119,28 +119,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     
     try {
-      final {data, error} = await client.auth.signUp(
+      final response = await client.auth.signUp(
         email: email,
         password: password,
-        options: AuthOptions( {
+        data: {
           'name': name,
           'phone': phone,
-        }),
+        },
       );
 
-      if (error != null) throw Exception(error.message);
-      
-      // Insert ke tabel users
-      final {error: insertError} = await client.from('users').insert({
-        'id': data.user!.id,
-        'name': name,
-        'phone_number': phone,
-        'role': 'user',
-      });
-
-      if (insertError != null) throw Exception(insertError.message);
-      
-      await _loadUserData(data.user!.id);
+      if (response.user != null) {
+        // Insert ke tabel users
+        await client.from('users').insert({
+          'id': response.user!.id,
+          'name': name,
+          'phone_number': phone,
+          'role': 'user',
+        });
+        
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -151,7 +149,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> signOut() async {
     await client.auth.signOut();
-    state = const AuthState();
+    state = AuthState();
     _init();
   }
 }
