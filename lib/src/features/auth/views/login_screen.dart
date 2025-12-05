@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../common/utils.dart';
-// PERBAIKAN: Import controller yang benar
 import '../controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-// ... (sisa kode sama seperti sebelumnya) {
   const LoginScreen({super.key});
 
   @override
@@ -34,60 +32,83 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     
-    print('🔑 Login button pressed');
+    print('🔑 Login attempt');
     print('   Email: $email');
     
     try {
-      // Clear previous error
+      // Clear previous error - pastikan widget masih mounted
+      if (!mounted) return;
       ref.read(authProvider.notifier).clearError();
       
       // Panggil signIn
       await ref.read(authProvider.notifier).signIn(email, password);
       
-      // Tunggu sebentar untuk memastikan state terupdate
+      // Cek apakah widget masih ada sebelum melanjutkan
+      if (!mounted) return;
+      
+      // Tunggu sebentar untuk state update
       await Future.delayed(const Duration(milliseconds: 100));
       
-      // Cek apakah ada error
+      if (!mounted) return;
+      
+      // Cek error
       final authState = ref.read(authProvider);
       
-      if (mounted) {
-        if (authState.errorMessage != null) {
-          showToast(context, authState.errorMessage!, error: true);
-          setState(() => _isLoading = false);
-        } else if (authState.session != null) {
-          // Login berhasil, router akan otomatis redirect
-          print('✅ Login successful, router will redirect');
-          // Keep loading true, let router handle navigation
-        }
+      if (authState.errorMessage != null) {
+        print('❌ Login failed: ${authState.errorMessage}');
+        showToast(context, _parseErrorMessage(authState.errorMessage!), error: true);
+        setState(() => _isLoading = false);
+      } else if (authState.session != null) {
+        print('✅ Login successful');
+        // Keep loading, router will handle redirect
+      } else {
+        // Tidak ada session dan tidak ada error - mungkin masih loading
+        print('⏳ Still loading...');
       }
     } catch (e) {
       print('❌ Login error: $e');
       if (mounted) {
-        showToast(context, 'Error: $e', error: true);
+        showToast(context, _parseErrorMessage(e.toString()), error: true);
         setState(() => _isLoading = false);
       }
     }
   }
 
+  String _parseErrorMessage(String error) {
+    // Parse error messages untuk user-friendly
+    if (error.contains('Invalid login credentials')) {
+      return 'Email atau password salah';
+    } else if (error.contains('Failed to fetch') || error.contains('Network')) {
+      return 'Koneksi gagal. Periksa internet Anda';
+    } else if (error.contains('timeout')) {
+      return 'Koneksi timeout. Coba lagi';
+    }
+    return 'Login gagal. Silakan coba lagi';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Listen to auth state changes
+    // Listen to auth state changes dengan pengecekan mounted
     ref.listen(authProvider, (previous, next) {
+      if (!mounted) return;
+      
       print('👂 Auth state listener:');
       print('   Previous session: ${previous?.session != null}');
       print('   Next session: ${next.session != null}');
       print('   Loading: ${next.isLoading}');
       print('   Error: ${next.errorMessage}');
       
-      // Jika login berhasil (ada session dan tidak loading)
+      // Jika login berhasil
       if (next.session != null && !next.isLoading && previous?.session == null) {
-        print('✅ Login successful detected in listener');
-        // Router akan handle redirect
+        print('✅ Login successful detected');
+        // Router akan handle redirect otomatis
       }
       
       // Jika ada error, stop loading
-      if (next.errorMessage != null && mounted) {
-        setState(() => _isLoading = false);
+      if (next.errorMessage != null) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     });
 
@@ -101,6 +122,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Icon(
+                  Icons.restaurant,
+                  size: 80,
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   'RestoReserve',
                   style: TextStyle(
@@ -163,7 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: _isLoading ? null : () {
-                            // TODO: Implement forgot password
+                            showToast(context, 'Fitur lupa password belum tersedia');
                           },
                           child: const Text('Lupa password?'),
                         ),
@@ -176,6 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: Colors.blue,
+                            disabledBackgroundColor: Colors.blue.withOpacity(0.6),
                           ),
                           child: (_isLoading || authState.isLoading)
                               ? const SizedBox(
@@ -191,6 +219,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
                                 ),
                         ),
@@ -199,6 +228,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextButton(
                         onPressed: _isLoading ? null : () => context.push('/register'),
                         child: const Text('Belum punya akun? Daftar'),
+                      ),
+                      const SizedBox(height: 24),
+                      // Test credentials helper
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Akun Test:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Admin: admin@resto.com / admin123',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            Text(
+                              'User: user@resto.com / user123',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

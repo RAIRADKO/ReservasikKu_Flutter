@@ -11,8 +11,8 @@ void main() async {
   
   // GUNAKAN KREDENSIAL YANG SAMA DENGAN .env
   await Supabase.initialize(
-    url: 'https://mbyeyecptotxuduavkib.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ieWV5ZWNwdG90eHVkdWF2a2liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MjM1NTMsImV4cCI6MjA4MDM5OTU1M30.KBXqHE38fSVMWvsA68MYy7attFvYHELk0S6jxn4EsOQ',
+    url: 'https://jnommzjbrttevoobdkiu.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impub21tempicnR0ZXZvb2Jka2l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MjM5NzQsImV4cCI6MjA4MDM5OTk3NH0.qSZXBoBs9kCCe8B0ivx9hy8TfYr7shjiDjx_cUdgDj0',
   );
 
   runApp(const ProviderScope(child: MyApp()));

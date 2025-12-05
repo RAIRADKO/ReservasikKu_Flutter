@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// PERBAIKAN 1: Path import diperbaiki (naik 3 level ke services)
 import '../../../services/supabase_service.dart';
 
-// --- BAGIAN BARU: STATE UNTUK FORM REGISTER ---
+// State untuk form register
 class RegisterFormState {
   final String name;
   final String email;
@@ -43,14 +42,12 @@ class RegisterFormState {
   }
 }
 
-// Provider untuk form register
 final registerFormProvider = StateProvider.autoDispose<RegisterFormState>((ref) {
   return RegisterFormState();
 });
-// ------------------------------------------------
 
+// Auth Provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  // Sekarang supabaseProvider akan dikenali karena import sudah benar
   return AuthNotifier(ref.read(supabaseProvider));
 });
 
@@ -108,6 +105,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(isLoading: false);
       }
     } catch (e) {
+      print('❌ Init error: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.toString(),
@@ -115,15 +113,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Method ini dibutuhkan oleh LoginScreen
   void clearError() {
-    state = AuthState(
-      isLoading: state.isLoading,
-      session: state.session,
-      user: state.user,
-      role: state.role,
-      errorMessage: null,
-    );
+    state = state.copyWith(errorMessage: null);
   }
 
   Future<void> _loadUserData(String userId) async {
@@ -139,18 +130,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
         role: response['role'] as String,
       );
     } catch (e) {
+      print('❌ Load user data error: $e');
       state = state.copyWith(isLoading: false);
     }
   }
 
   Future<void> signIn(String email, String password) async {
-    state = state.copyWith(isLoading: true);
+    print('🔐 SignIn started');
+    state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      print('   Calling Supabase signInWithPassword...');
+      
       final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+
+      print('   Response received');
+      print('   User: ${response.user?.id}');
+      print('   Session: ${response.session != null}');
 
       if (response.user != null) {
         await _loadUserData(response.user!.id);
@@ -158,11 +157,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
           session: response.session,
           user: response.user,
         );
+        print('✅ SignIn completed successfully');
+      } else {
+        print('⚠️ SignIn returned no user');
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Login gagal, tidak ada user',
+        );
       }
-    } catch (e) {
+    } on AuthException catch (e) {
+      print('❌ AuthException: ${e.message}');
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: e.message,
+      );
+    } catch (e) {
+      print('❌ SignIn error: $e');
+      String errorMsg = e.toString();
+      
+      // Parse error untuk user-friendly message
+      if (errorMsg.contains('Failed to fetch')) {
+        errorMsg = 'Koneksi ke server gagal. Periksa koneksi internet Anda.';
+      } else if (errorMsg.contains('Network')) {
+        errorMsg = 'Masalah jaringan. Coba lagi.';
+      }
+      
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: errorMsg,
       );
     }
   }
@@ -173,7 +195,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
     required String phone,
   }) async {
-    state = state.copyWith(isLoading: true);
+    print('📝 SignUp started');
+    state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
       final response = await client.auth.signUp(
@@ -185,7 +208,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
       );
 
+      print('   SignUp response received');
+
       if (response.user != null) {
+        // Insert ke users table
         await client.from('users').insert({
           'id': response.user!.id,
           'name': name,
@@ -193,9 +219,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'role': 'user',
         });
 
-        state = state.copyWith(isLoading: false);
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: null,
+        );
+        print('✅ SignUp completed successfully');
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Registrasi gagal',
+        );
       }
+    } on AuthException catch (e) {
+      print('❌ SignUp AuthException: ${e.message}');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
     } catch (e) {
+      print('❌ SignUp error: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.toString(),
@@ -204,8 +246,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
-    await client.auth.signOut();
-    state = AuthState();
-    _init();
+    try {
+      await client.auth.signOut();
+      state = AuthState();
+      await _init();
+    } catch (e) {
+      print('❌ SignOut error: $e');
+    }
   }
 }
