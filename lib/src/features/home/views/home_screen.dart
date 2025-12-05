@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../common/constants.dart';
 import '../../../providers/auth_provider.dart';
-import '../../reservation/views/create_reservation_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -12,7 +11,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final userName = authState.user?.userMetadata['name'] ?? 'User';
+    final userName = authState.user?.userMetadata?['name'] ?? 'User';
 
     return Scaffold(
       appBar: AppBar(

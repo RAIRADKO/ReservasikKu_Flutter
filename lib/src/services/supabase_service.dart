@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart'; // Tambahkan ini untuk TimeOfDay
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -131,22 +131,26 @@ class ReservationService {
     String? status,
     DateTime? date,
   }) async {
-    var query = client
+    // Build query dengan filter kondisional
+    PostgrestFilterBuilder query = client
         .from('reservations')
-        .select('*, tables(table_number, capacity), users(name, phone_number)')
-        .order('reservation_date', ascending: false)
-        .order('reservation_time', ascending: false);
+        .select('*, tables(table_number, capacity), users(name, phone_number)');
 
+    // Apply filters jika ada
     if (status != null) {
-      query = query.eq('status', status) as PostgrestFilterBuilder;
+      query = query.eq('status', status);
     }
 
     if (date != null) {
       final formattedDate = date.toIso8601String().split('T')[0];
-      query = query.eq('reservation_date', formattedDate) as PostgrestFilterBuilder;
+      query = query.eq('reservation_date', formattedDate);
     }
 
-    final data = await query;
+    // Apply ordering dan execute query
+    final data = await query
+        .order('reservation_date', ascending: false)
+        .order('reservation_time', ascending: false);
+
     return List<Map<String, dynamic>>.from(data);
   }
 

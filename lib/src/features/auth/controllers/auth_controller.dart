@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../providers/auth_provider.dart';
-
 final loginFormProvider = StateProvider<LoginFormState>((ref) {
   return LoginFormState();
 });

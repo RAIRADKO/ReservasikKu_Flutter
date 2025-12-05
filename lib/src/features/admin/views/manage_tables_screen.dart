@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// Import extensions agar fungsi .capitalize() terbaca
+import '../../../common/extensions.dart'; 
 import '../../../services/supabase_service.dart';
 import '../../../widgets/custom_app_bar.dart';
 
 class ManageTablesScreen extends ConsumerStatefulWidget {
   const ManageTablesScreen({super.key});
 
-@override
-ConsumerState<ManageTablesScreen> createState() =>
-    _ManageTablesScreenState();
+  @override
+  ConsumerState<ManageTablesScreen> createState() =>
+      _ManageTablesScreenState();
 }
 
 class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
@@ -29,16 +31,27 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
     _loadTables();
   }
 
+  @override
+  void dispose() {
+    _tableNumberController.dispose();
+    _capacityController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadTables() async {
     try {
       final service = ref.read(tableProvider);
       final tables = await service.getAllTables();
       
+      if (!mounted) return; // Cek mounted sebelum setState
+
       setState(() {
         _tables = tables;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading tables: ${e.toString()}')),
       );
@@ -70,6 +83,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
           isActive: tableData['is_active'] as bool,
         );
         
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Meja berhasil diperbarui')),
         );
@@ -82,6 +96,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
           isActive: tableData['is_active'] as bool,
         );
         
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Meja berhasil ditambahkan')),
         );
@@ -90,6 +105,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
       _clearForm();
       await _loadTables();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving table: ${e.toString()}')),
       );
@@ -144,10 +160,12 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
         await service.deleteTable(id);
         await _loadTables();
         
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Meja berhasil dihapus')),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error deleting table: ${e.toString()}')),
         );
@@ -223,6 +241,7 @@ class _ManageTablesScreenState extends ConsumerState<ManageTablesScreen> {
                                               );
                                               await _loadTables();
                                             } catch (e) {
+                                              if (!context.mounted) return;
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(content: Text('Gagal mengubah status: ${e.toString()}')),
                                               );

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart'; // Tambahkan ini
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/routes/app_router.dart';
-import 'src/services/supabase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,15 +17,15 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends ConsumerWidget { // Ubah jadi ConsumerWidget
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) { // Tambah WidgetRef
-    final routerConfig = ref.watch(routerProvider); // Watch router provider
+  Widget build(BuildContext context, WidgetRef ref) {
+    final routerConfig = ref.watch(routerProvider);
     
     return MaterialApp.router(
-      routerConfig: routerConfig, // Gunakan routerConfig langsung
+      routerConfig: routerConfig,
       title: 'Reservasi Meja Restoran',
       theme: ThemeData(
         primarySwatch: Colors.blue,

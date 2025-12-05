@@ -18,8 +18,8 @@ extension TimeOfDayExtension on TimeOfDay {
       now.year,
       now.month,
       now.day,
-      this.hour,
-      this.minute,
+      hour,
+      minute,
     );
     return DateFormat.jm().format(dateTime).replaceAll('.', '');
   }
@@ -42,7 +42,7 @@ extension StringExtension on String {
       case "rejected": return "Ditolak";
       case "canceled_by_user": return "Dibatalkan User";
       case "canceled_by_admin": return "Dibatalkan Admin";
-      default: return this.capitalize();
+      default: return capitalize();
     }
   }
 }

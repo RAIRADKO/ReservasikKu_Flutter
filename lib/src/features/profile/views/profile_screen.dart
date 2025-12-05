@@ -10,12 +10,12 @@ import '../controllers/profile_controller.dart';
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
-@override
-ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+  @override
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  late ProfileFormState _formState;
+  ProfileFormState? _formState;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -25,63 +25,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-  final authState = ref.read(authProvider);
-  if (authState.user == null) return;
+    final authState = ref.read(authProvider);
+    if (authState.user == null) return;
 
-  final userId = authState.user!.id;
-  final client = ref.read(supabaseProvider);
-
-  try {
-    final response = await client
-        .from('users')
-        .select('name, phone_number')
-        .eq('id', userId)
-        .single();
-
-    setState(() {
-      _formState = ProfileFormState(
-        name: response['name'] ?? '',
-        phone: response['phone_number'] ?? '',
-      );
-    });
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat data profil: $e')),
-      );
-    }
-  }
-}
-
-Future<void> _saveProfile() async {
-  if (!_formKey.currentState!.validate()) return;
-
-  final authState = ref.read(authProvider);
-  if (authState.user == null) return;
-
-  try {
+    final userId = authState.user!.id;
     final client = ref.read(supabaseProvider);
-    await client
-        .from('users')
-        .update({
-          'name': _formState.name.trim(),
-          'phone_number': _formState.phone.trim(),
-        })
-        .eq('id', authState.user!.id);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil diperbarui')),
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memperbarui profil: $e')),
-      );
+    try {
+      final response = await client
+          .from('users')
+          .select('name, phone_number')
+          .eq('id', userId)
+          .single();
+
+      setState(() {
+        _formState = ProfileFormState(
+          name: response['name'] ?? '',
+          phone: response['phone_number'] ?? '',
+        );
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data profil: $e')),
+        );
+      }
     }
   }
-}
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
@@ -91,23 +61,25 @@ Future<void> _saveProfile() async {
 
     try {
       final client = ref.read(supabaseProvider);
-      final {error} = await client
+      await client
           .from('users')
           .update({
-            'name': _formState.name.trim(),
-            'phone_number': _formState.phone.trim(),
+            'name': _formState!.name.trim(),
+            'phone_number': _formState!.phone.trim(),
           })
           .eq('id', authState.user!.id);
 
-      if (error != null) throw Exception(error.message);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil diperbarui')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil berhasil diperbarui')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memperbarui profil: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memperbarui profil: $e')),
+        );
+      }
     }
   }
 
@@ -142,7 +114,7 @@ Future<void> _saveProfile() async {
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
-                      initialValue: _formState.name,
+                      initialValue: _formState!.name,
                       decoration: const InputDecoration(
                         labelText: 'Nama Lengkap',
                         prefixIcon: Icon(Icons.person),
@@ -155,12 +127,12 @@ Future<void> _saveProfile() async {
                         return null;
                       },
                       onChanged: (value) => setState(() {
-                        _formState = _formState.copyWith(name: value);
+                        _formState = _formState!.copyWith(name: value);
                       }),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      initialValue: _formState.phone,
+                      initialValue: _formState!.phone,
                       decoration: const InputDecoration(
                         labelText: 'Nomor HP',
                         prefixIcon: Icon(Icons.phone),
@@ -177,7 +149,7 @@ Future<void> _saveProfile() async {
                         return null;
                       },
                       onChanged: (value) => setState(() {
-                        _formState = _formState.copyWith(phone: value);
+                        _formState = _formState!.copyWith(phone: value);
                       }),
                     ),
                     const SizedBox(height: 32),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/extensions.dart';
 
 class TableCard extends StatelessWidget {
   final Map<String, dynamic> table;
@@ -64,7 +65,7 @@ class TableCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     table['location'].toString().capitalize(),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 14,
                     ),
