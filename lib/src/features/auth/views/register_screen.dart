@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/utils.dart';
-import '../../../providers/auth_provider.dart';
+// PERBAIKAN: Hapus import providers/auth_provider.dart, hanya gunakan ini:
 import '../controllers/auth_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {

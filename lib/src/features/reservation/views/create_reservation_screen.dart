@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../common/constants.dart';
 import '../../../common/extensions.dart';
 import '../../../common/utils.dart';
-import '../../../providers/auth_provider.dart';
+// PERBAIKAN: Import yang benar
+import '../../auth/controllers/auth_controller.dart';
 import '../../../services/supabase_service.dart';
 import '../../../widgets/table_card.dart';
 

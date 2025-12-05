@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common/constants.dart';
-import '../../../providers/auth_provider.dart';
+// PERBAIKAN: Import yang benar
+import '../../auth/controllers/auth_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});

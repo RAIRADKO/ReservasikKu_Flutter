@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common/extensions.dart';
-import '../../../providers/auth_provider.dart';
+// PERBAIKAN: Import yang benar
+import '../../auth/controllers/auth_controller.dart';
 import '../../../services/supabase_service.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/status_badge.dart';

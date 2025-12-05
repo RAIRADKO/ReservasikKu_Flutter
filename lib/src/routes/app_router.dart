@@ -11,7 +11,8 @@ import '../features/profile/views/profile_screen.dart';
 import '../features/admin/views/admin_dashboard_screen.dart';
 import '../features/admin/views/manage_reservations_screen.dart';
 import '../features/admin/views/manage_tables_screen.dart';
-import '../providers/auth_provider.dart';
+// PERBAIKAN: Import yang benar
+import '../features/auth/controllers/auth_controller.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../common/utils.dart';
-import '../../../providers/auth_provider.dart';
+// PERBAIKAN: Import controller yang benar
 import '../controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
+// ... (sisa kode sama seperti sebelumnya) {
   const LoginScreen({super.key});
 
   @override
@@ -37,8 +38,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     print('   Email: $email');
     
     try {
+      // Clear previous error
+      ref.read(authProvider.notifier).clearError();
+      
       // Panggil signIn
       await ref.read(authProvider.notifier).signIn(email, password);
+      
+      // Tunggu sebentar untuk memastikan state terupdate
+      await Future.delayed(const Duration(milliseconds: 100));
       
       // Cek apakah ada error
       final authState = ref.read(authProvider);
@@ -46,17 +53,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         if (authState.errorMessage != null) {
           showToast(context, authState.errorMessage!, error: true);
+          setState(() => _isLoading = false);
         } else if (authState.session != null) {
           // Login berhasil, router akan otomatis redirect
           print('✅ Login successful, router will redirect');
+          // Keep loading true, let router handle navigation
         }
       }
     } catch (e) {
+      print('❌ Login error: $e');
       if (mounted) {
         showToast(context, 'Error: $e', error: true);
-      }
-    } finally {
-      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
@@ -66,14 +73,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     // Listen to auth state changes
     ref.listen(authProvider, (previous, next) {
-      // Debug log
-      if (previous?.isLoading == true && next.isLoading == false) {
-        print('📱 Auth state changed:');
-        print('   Session: ${next.session != null}');
-        print('   Error: ${next.errorMessage}');
-        print('   Role: ${next.role}');
+      print('👂 Auth state listener:');
+      print('   Previous session: ${previous?.session != null}');
+      print('   Next session: ${next.session != null}');
+      print('   Loading: ${next.isLoading}');
+      print('   Error: ${next.errorMessage}');
+      
+      // Jika login berhasil (ada session dan tidak loading)
+      if (next.session != null && !next.isLoading && previous?.session == null) {
+        print('✅ Login successful detected in listener');
+        // Router akan handle redirect
+      }
+      
+      // Jika ada error, stop loading
+      if (next.errorMessage != null && mounted) {
+        setState(() => _isLoading = false);
       }
     });
+
+    final authState = ref.watch(authProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -112,6 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.emailAddress,
+                        enabled: !_isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Email wajib diisi';
@@ -131,6 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           border: OutlineInputBorder(),
                         ),
                         obscureText: true,
+                        enabled: !_isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Password wajib diisi';
@@ -142,7 +162,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
+                          onPressed: _isLoading ? null : () {
                             // TODO: Implement forgot password
                           },
                           child: const Text('Lupa password?'),
@@ -152,12 +172,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
+                          onPressed: (_isLoading || authState.isLoading) ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: Colors.blue,
                           ),
-                          child: _isLoading
+                          child: (_isLoading || authState.isLoading)
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
@@ -177,7 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextButton(
-                        onPressed: () => context.push('/register'),
+                        onPressed: _isLoading ? null : () => context.push('/register'),
                         child: const Text('Belum punya akun? Daftar'),
                       ),
                     ],
