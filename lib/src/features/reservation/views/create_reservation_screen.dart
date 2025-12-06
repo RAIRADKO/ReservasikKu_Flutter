@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../common/constants.dart';
 import '../../../common/extensions.dart';
 import '../../../common/utils.dart';
+import '../../../common/app_theme.dart';
 // PERBAIKAN: Import yang benar
 import '../../auth/controllers/auth_controller.dart';
 import '../../../services/supabase_service.dart';
@@ -252,13 +253,38 @@ class _CreateReservationScreenState
                 ),
                 const SizedBox(height: 16),
                 if (_availableTables.isEmpty)
-                  ElevatedButton(
-                    onPressed: _findAvailableTables,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryBlue.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Text('Cari Meja Tersedia'),
+                    child: ElevatedButton(
+                      onPressed: _findAvailableTables,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cari Meja Tersedia',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -321,19 +347,48 @@ class _CreateReservationScreenState
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: _availableTables.isEmpty || _selectedTableId == null
+            ? null
+            : LinearGradient(
+                colors: [AppTheme.primaryBlue, AppTheme.primaryBlueDark],
+              ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: _availableTables.isEmpty || _selectedTableId == null
+            ? null
+            : [
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+      ),
       child: ElevatedButton(
         onPressed: _availableTables.isEmpty || _selectedTableId == null
             ? null
             : _submitReservation,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
+          backgroundColor: _availableTables.isEmpty || _selectedTableId == null
+              ? Colors.grey[300]
+              : Colors.transparent,
+          shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: const Text(
           'Konfirmasi Reservasi',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );

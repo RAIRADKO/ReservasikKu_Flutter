@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common/extensions.dart';
+import '../../../common/app_theme.dart';
 // PERBAIKAN: Import yang benar
 import '../../auth/controllers/auth_controller.dart';
 import '../../../services/supabase_service.dart';
@@ -67,20 +68,35 @@ class _ReservationHistoryScreenState
           : _hasError
               ? Center(child: Text(_errorMessage))
               : _reservations.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: AppTheme.lightBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.history,
+                              size: 64,
+                              color: AppTheme.primaryBlue,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                           Text(
                             'Belum ada reservasi',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             'Buat reservasi pertama Anda sekarang!',
-                            style: TextStyle(color: Colors.grey),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                ),
                           ),
                         ],
                       ),
@@ -95,54 +111,80 @@ class _ReservationHistoryScreenState
                         // Format tanggal dan waktu
                         final date = DateTime.parse('${reservation['reservation_date']}T${reservation['reservation_time']}');
                         
-                        return Card(
+                        return Container(
                           margin: const EdgeInsets.only(bottom: 12),
-                          shape: RoundedRectangleBorder(
+                          decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: InkWell(
-                            onTap: () => context.push('/reservations/${reservation['id']}'),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Meja ${table['table_number']}',
-                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                      statusBadge(reservation['status']),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        date.formattedDateTime(),
-                                        style: const TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.people, size: 16, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${reservation['people_count']} orang',
-                                        style: const TextStyle(color: Colors.grey),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                          child: Card(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: InkWell(
+                              onTap: () => context.push('/reservations/${reservation['id']}'),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Meja ${table['table_number']}',
+                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.textPrimary,
+                                              ),
+                                        ),
+                                        statusBadge(reservation['status']),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today,
+                                          size: 18,
+                                          color: AppTheme.primaryBlue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          date.formattedDateTime(),
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: AppTheme.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.people,
+                                          size: 18,
+                                          color: AppTheme.primaryBlue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${reservation['people_count']} orang',
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: AppTheme.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

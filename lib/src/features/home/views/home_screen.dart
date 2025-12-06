@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common/constants.dart';
+import '../../../common/app_theme.dart';
 // PERBAIKAN: Import yang benar
 import '../../auth/controllers/auth_controller.dart';
 
@@ -24,50 +25,116 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Halo, $userName!',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppTheme.primaryBlue, AppTheme.backgroundLight],
+            stops: [0.0, 0.3],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Welcome Section
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.primaryGradient,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.restaurant_menu,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Halo, $userName!',
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Reservasi meja restoran dengan mudah',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 32),
+                  // Action Cards
+                  _buildActionCard(
+                    context,
+                    title: 'Buat Reservasi',
+                    description: 'Pesan meja untuk makan bersama keluarga atau teman',
+                    icon: Icons.table_restaurant,
+                    gradient: AppTheme.primaryGradient,
+                    onTap: () => context.push('/create-reservation'),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildActionCard(
+                    context,
+                    title: 'Riwayat Reservasi',
+                    description: 'Lihat semua reservasi Anda',
+                    icon: Icons.history,
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primaryBlueLight, AppTheme.accentBlue],
+                    ),
+                    onTap: () => context.push('/reservations'),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildActionCard(
+                    context,
+                    title: 'Profil Saya',
+                    description: 'Kelola informasi akun Anda',
+                    icon: Icons.person,
+                    gradient: LinearGradient(
+                      colors: [AppTheme.deepBlue, AppTheme.primaryBlue],
+                    ),
+                    onTap: () => context.push('/profile'),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Reservasi meja restoran dengan mudah',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 40),
-            _buildActionCard(
-              context,
-              title: 'Buat Reservasi',
-              description: 'Pesan meja untuk makan bersama keluarga atau teman',
-              icon: Icons.table_restaurant,
-              color: Colors.blue,
-              onTap: () => context.push('/create-reservation'),
-            ),
-            const SizedBox(height: 24),
-            _buildActionCard(
-              context,
-              title: 'Riwayat Reservasi',
-              description: 'Lihat semua reservasi Anda',
-              icon: Icons.history,
-              color: Colors.green,
-              onTap: () => context.push('/reservations'),
-            ),
-            const SizedBox(height: 24),
-            _buildActionCard(
-              context,
-              title: 'Profil Saya',
-              description: 'Kelola informasi akun Anda',
-              icon: Icons.person,
-              color: Colors.purple,
-              onTap: () => context.push('/profile'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -78,49 +145,84 @@ class HomeScreen extends ConsumerWidget {
     required String title,
     required String description,
     required IconData icon,
-    required Color color,
+    required Gradient gradient,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryBlue.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 32),
                 ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightBlue,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 18,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

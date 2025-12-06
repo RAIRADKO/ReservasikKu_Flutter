@@ -65,19 +65,43 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
-      if (authState.isLoading) return null;
+      // Jika masih loading, jangan redirect
+      if (authState.isLoading) {
+        return null;
+      }
       
       final isAuth = authState.session != null;
       final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/register';
+      final isAdminRoute = state.uri.path.startsWith('/admin');
+      final isUserRoute = !isAdminRoute && !isLoggingIn;
       
-      if (!isAuth && !isLoggingIn) return '/login';
-      if (isAuth && isLoggingIn) return '/home';
+      // Jika tidak login dan mencoba akses route yang memerlukan auth
+      if (!isAuth && isUserRoute) {
+        return '/login';
+      }
       
-      // Redirect admin ke dashboard admin
-      if (isAuth && authState.role == 'admin') {
-        if (state.uri.path == '/home' || state.uri.path == '/reservations' || state.uri.path == '/profile') {
+      // Jika tidak login dan mencoba akses admin route
+      if (!isAuth && isAdminRoute) {
+        return '/login';
+      }
+      
+      // Jika sudah login dan berada di halaman login/register
+      if (isAuth && isLoggingIn) {
+        // Redirect berdasarkan role
+        if (authState.role == 'admin') {
           return '/admin/dashboard';
         }
+        return '/home';
+      }
+      
+      // Jika user biasa mencoba akses admin route
+      if (isAuth && isAdminRoute && authState.role != 'admin') {
+        return '/home';
+      }
+      
+      // Jika admin mencoba akses user route
+      if (isAuth && isUserRoute && authState.role == 'admin') {
+        return '/admin/dashboard';
       }
       
       return null;

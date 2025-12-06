@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../common/app_theme.dart';
 // PERBAIKAN: Import yang benar
 import '../../auth/controllers/auth_controller.dart';
 import '../../../services/supabase_service.dart';
@@ -103,23 +104,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    const CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.blue,
-                      child: Icon(Icons.person, size: 60, color: Colors.white),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryBlue.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.person, size: 60, color: AppTheme.primaryBlue),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
+                    const SizedBox(height: 20),
+                    Text(
                       'Informasi Profil',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
                       initialValue: _formState!.name,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nama Lengkap',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person, color: AppTheme.primaryBlue),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -134,10 +154,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       initialValue: _formState!.phone,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nomor HP',
-                        prefixIcon: Icon(Icons.phone),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.phone, color: AppTheme.primaryBlue),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       keyboardType: TextInputType.phone,
                       validator: (value) {
@@ -154,17 +176,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       }),
                     ),
                     const SizedBox(height: 32),
-                    SizedBox(
+                    Container(
                       width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryBlue.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
                       child: ElevatedButton(
                         onPressed: _saveProfile,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text(
                           'Simpan Perubahan',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
