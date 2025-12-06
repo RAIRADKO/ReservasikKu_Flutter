@@ -17,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -34,40 +35,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     
-    print('🔑 Login attempt');
-    print('   Email: $email');
-    
     try {
-      // Clear previous error
       ref.read(authProvider.notifier).clearError();
-      
-      // Panggil signIn
       await ref.read(authProvider.notifier).signIn(email, password);
       
-      // Cek apakah widget masih ada sebelum melanjutkan
       if (!mounted) return;
-      
-      // Tunggu sebentar untuk state update
       await Future.delayed(const Duration(milliseconds: 200));
       
       if (!mounted) return;
-      
-      // Cek error
       final authState = ref.read(authProvider);
       
       if (authState.errorMessage != null) {
-        print('❌ Login failed: ${authState.errorMessage}');
         showToast(context, _parseErrorMessage(authState.errorMessage!), error: true);
         if (mounted) {
           setState(() => _isLoading = false);
         }
-      } else if (authState.session != null && !authState.isLoading) {
-        print('✅ Login successful');
-        // Router akan handle redirect otomatis
-        // Loading akan dihentikan oleh listener
       }
     } catch (e) {
-      print('❌ Login error: $e');
       if (mounted) {
         showToast(context, _parseErrorMessage(e.toString()), error: true);
         setState(() => _isLoading = false);
@@ -76,7 +60,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String _parseErrorMessage(String error) {
-    // Parse error messages untuk user-friendly
     if (error.contains('Invalid login credentials')) {
       return 'Email atau password salah';
     } else if (error.contains('Failed to fetch') || error.contains('Network')) {
@@ -89,24 +72,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to auth state changes dengan pengecekan mounted
     ref.listen(authProvider, (previous, next) {
       if (!mounted) return;
       
-      print('👂 Auth state listener:');
-      print('   Previous session: ${previous?.session != null}');
-      print('   Next session: ${next.session != null}');
-      print('   Loading: ${next.isLoading}');
-      print('   Error: ${next.errorMessage}');
-      
-      // Jika login berhasil (session muncul dan tidak loading)
       if (next.session != null && !next.isLoading && previous?.session == null) {
-        print('✅ Login successful detected');
         setState(() => _isLoading = false);
-        // Router akan handle redirect otomatis
       }
       
-      // Jika ada error atau loading selesai, stop loading
       if (next.errorMessage != null || (!next.isLoading && _isLoading)) {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -117,258 +89,234 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppTheme.primaryBlue, AppTheme.primaryBlueDark, AppTheme.backgroundLight],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Form(
+              key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
-                  // Logo Section
+                  // Logo
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    width: 100,
+                    height: 100,
+                    margin: const EdgeInsets.only(bottom: 24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      gradient: AppTheme.primaryGradient,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: AppTheme.primaryBlue.withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.restaurant_menu,
-                        size: 60,
-                        color: Colors.white,
-                      ),
+                    child: const Icon(
+                      Icons.restaurant_menu,
+                      size: 50,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'RestoReserve',
-                    style: TextStyle(
-                      fontSize: 36,
+                  
+                  // Title
+                  Text(
+                    'Selamat Datang',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Reservasi Meja Restoran',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
-                      fontWeight: FontWeight.w500,
+                    'Masuk untuk melanjutkan',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 50),
-                  // Form Card
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(28.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _emailController,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: const Icon(Icons.email, color: AppTheme.primaryBlue),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            enabled: !_isLoading,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Email wajib diisi';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Email tidak valid';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          TextFormField(
-                            controller: _passwordController,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock, color: AppTheme.primaryBlue),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            obscureText: true,
-                            enabled: !_isLoading,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Password wajib diisi';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: _isLoading ? null : () {
-                                showToast(context, 'Fitur lupa password belum tersedia');
-                              },
-                              child: const Text('Lupa password?'),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          Container(
-                            width: double.infinity,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.primaryGradient,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryBlue.withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: (_isLoading || authState.isLoading) ? null : _handleLogin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: (_isLoading || authState.isLoading)
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2.5,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Masuk',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Belum punya akun? ',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _isLoading ? null : () => context.push('/register'),
-                                child: const Text(
-                                  'Daftar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          // Test credentials helper
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.lightGradient,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppTheme.primaryBlue.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      size: 18,
-                                      color: AppTheme.primaryBlue,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Akun Test:',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: AppTheme.primaryBlue,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Admin: admin@resto.com / admin123',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'User: user@resto.com / user123',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                  const SizedBox(height: 48),
+                  
+                  // Email Field
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      hintText: 'nama@email.com',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    enabled: !_isLoading,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email wajib diisi';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Email tidak valid';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Password Field
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      hintText: '••••••••',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword 
+                            ? Icons.visibility_off_outlined 
+                            : Icons.visibility_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    enabled: !_isLoading,
+                    onFieldSubmitted: (_) => _handleLogin(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _isLoading ? null : () {
+                        showToast(context, 'Fitur lupa password belum tersedia');
+                      },
+                      child: Text(
+                        'Lupa password?',
+                        style: TextStyle(
+                          color: AppTheme.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Login Button
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: (_isLoading || authState.isLoading) ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: (_isLoading || authState.isLoading)
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              'Masuk',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Register Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Belum punya akun? ',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _isLoading ? null : () => context.push('/register'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        child: const Text(
+                          'Daftar Sekarang',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Test Credentials
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.lightBlue,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primaryBlue.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: AppTheme.primaryBlue,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Akun Test',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: AppTheme.primaryBlue,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTestCredential('Admin', 'admin@resto.com', 'admin123'),
+                        const SizedBox(height: 4),
+                        _buildTestCredential('User', 'user@resto.com', 'user123'),
+                      ],
                     ),
                   ),
                 ],
@@ -377,6 +325,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTestCredential(String role, String email, String password) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '$role: $email / $password',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.copy, size: 16, color: AppTheme.primaryBlue),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onPressed: () {
+            _emailController.text = email;
+            _passwordController.text = password;
+            showToast(context, 'Kredensial disalin');
+          },
+        ),
+      ],
     );
   }
 }
