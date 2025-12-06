@@ -6,7 +6,6 @@ import '../../../common/constants.dart';
 import '../../../common/extensions.dart';
 import '../../../common/utils.dart';
 import '../../../common/app_theme.dart';
-// PERBAIKAN: Import yang benar
 import '../../auth/controllers/auth_controller.dart';
 import '../../../services/supabase_service.dart';
 import '../../../widgets/table_card.dart';
@@ -20,13 +19,36 @@ class CreateReservationScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateReservationScreenState
-    extends ConsumerState<CreateReservationScreen> {
+    extends ConsumerState<CreateReservationScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = TimeOfDay.now().replacing(hour: 18, minute: 0);
   int _peopleCount = 2;
   List<Map<String, dynamic>> _availableTables = [];
   int? _selectedTableId;
+  bool _isSearching = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _findAvailableTables() async {
     if (!mounted) return;
@@ -39,7 +61,6 @@ class _CreateReservationScreenState
     }
 
     try {
-      // Validasi tanggal dan waktu tidak di masa lalu
       final now = DateTime.now();
       final selectedDateTime = DateTime(
         _selectedDate.year,
@@ -54,7 +75,8 @@ class _CreateReservationScreenState
         return;
       }
 
-      showLoadingDialog(context);
+      setState(() => _isSearching = true);
+      
       final service = ref.read(reservationProvider);
       final tables = await service.getAvailableTables(
         peopleCount: _peopleCount,
@@ -62,18 +84,19 @@ class _CreateReservationScreenState
         reservationTime: _selectedTime,
       );
 
-      hideLoadingDialog(context);
-
       setState(() {
         _availableTables = tables;
         _selectedTableId = tables.isNotEmpty ? tables.first['id'] : null;
+        _isSearching = false;
       });
 
       if (tables.isEmpty) {
         showToast(context, 'Tidak ada meja yang tersedia untuk jumlah orang ini', error: true);
+      } else {
+        showToast(context, '${tables.length} meja tersedia!');
       }
     } catch (e) {
-      hideLoadingDialog(context);
+      setState(() => _isSearching = false);
       showToast(context, 'Error: ${e.toString()}', error: true);
     }
   }
@@ -114,53 +137,205 @@ class _CreateReservationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buat Reservasi')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDateTimePicker(),
-                const SizedBox(height: 24),
-                _buildPeopleCount(),
-                const SizedBox(height: 24),
-                _buildTableSelection(),
-                const SizedBox(height: 32),
-                _buildSubmitButton(),
-              ],
-            ),
+      backgroundColor: AppTheme.backgroundLight,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: CustomScrollView(
+            slivers: [
+              _buildAppBar(),
+              SliverPadding(
+                padding: const EdgeInsets.all(20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildWelcomeCard(),
+                    const SizedBox(height: 24),
+                    _buildDateTimeSection(),
+                    const SizedBox(height: 24),
+                    _buildPeopleCountSection(),
+                    const SizedBox(height: 24),
+                    if (_availableTables.isNotEmpty) ...[
+                      _buildTableSelectionSection(),
+                      const SizedBox(height: 24),
+                    ],
+                    _buildSubmitButton(),
+                    const SizedBox(height: 32),
+                  ]),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDateTimePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Tanggal & Jam', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 12),
-        Card(
-          elevation: 1,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      expandedHeight: 120,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppTheme.primaryBlue,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+          ),
+        ),
+        title: const Text(
+          'Buat Reservasi',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => context.pop(),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryBlue.withOpacity(0.1),
+            AppTheme.lightBlue,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.restaurant_menu,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  readOnly: true,
-                  controller: TextEditingController(
-                    text: _selectedDate.formattedDate(),
+                Text(
+                  'Pesan Meja Favorit',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pilih tanggal, waktu, dan meja yang sesuai',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateTimeSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Icon(
+                    Icons.calendar_month,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Tanggal & Waktu',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.lightBlue,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
                   onTap: () async {
                     final selected = await showDatePicker(
                       context: context,
                       initialDate: _selectedDate,
                       firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: AppConstants.maxReservationDays)),
+                      lastDate: DateTime.now().add(
+                        const Duration(days: AppConstants.maxReservationDays),
+                      ),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: AppTheme.primaryBlue,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (selected != null) {
                       setState(() {
@@ -169,22 +344,78 @@ class _CreateReservationScreenState
                       });
                     }
                   },
-                  decoration: const InputDecoration(
-                    labelText: 'Tanggal',
-                    prefixIcon: Icon(Icons.calendar_today),
-                    border: InputBorder.none,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          color: AppTheme.primaryBlue,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tanggal Reservasi',
+                                style: TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedDate.formattedDate(),
+                                style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: AppTheme.primaryBlue,
+                          size: 16,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const Divider(height: 24),
-                TextFormField(
-                  readOnly: true,
-                  controller: TextEditingController(
-                    text: _selectedTime.formatTime(context),
-                  ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.lightBlue,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
                   onTap: () async {
                     final selected = await showTimePicker(
                       context: context,
                       initialTime: _selectedTime,
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: AppTheme.primaryBlue,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (selected != null) {
                       setState(() {
@@ -193,202 +424,393 @@ class _CreateReservationScreenState
                       });
                     }
                   },
-                  decoration: const InputDecoration(
-                    labelText: 'Jam',
-                    prefixIcon: Icon(Icons.access_time),
-                    border: InputBorder.none,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPeopleCount() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Jumlah Orang', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 12),
-        Card(
-          elevation: 1,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Text(
-                  '$_peopleCount orang',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove, size: 32),
-                      onPressed: () {
-                        if (_peopleCount > 1) {
-                          setState(() {
-                            _peopleCount--;
-                            _availableTables = [];
-                          });
-                        }
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add, size: 32),
-                      onPressed: () {
-                        setState(() {
-                          _peopleCount++;
-                          _availableTables = [];
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (_availableTables.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          color: AppTheme.primaryBlue,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Waktu Reservasi',
+                                style: TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedTime.formatTime(context),
+                                style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: AppTheme.primaryBlue,
+                          size: 16,
                         ),
                       ],
                     ),
-                    child: ElevatedButton(
-                      onPressed: _findAvailableTables,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Cari Meja Tersedia',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
                   ),
-              ],
+                ),
+              ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
-  Widget _buildTableSelection() {
-    if (_availableTables.isEmpty) {
-      return Container();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Pilih Meja', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 200,
-          child: _availableTables.length > 3
-              ? ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _availableTables.length,
-                  itemBuilder: (context, index) {
-                    final table = _availableTables[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: TableCard(
-                        table: table,
-                        isSelected: _selectedTableId == table['id'],
-                        onTap: () {
-                          setState(() {
-                            _selectedTableId = table['id'];
-                          });
-                        },
-                      ),
-                    );
-                  },
-                )
-              : Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: _availableTables.map((table) {
-                    return TableCard(
-                      table: table,
-                      isSelected: _selectedTableId == table['id'],
-                      onTap: () {
-                        setState(() {
-                          _selectedTableId = table['id'];
-                        });
-                      },
-                    );
-                  }).toList(),
+  Widget _buildPeopleCountSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: const Icon(
+                  Icons.people,
+                  color: AppTheme.primaryBlue,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Jumlah Tamu',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildCounterButton(
+                    icon: Icons.remove,
+                    onPressed: _peopleCount > 1
+                        ? () {
+                            setState(() {
+                              _peopleCount--;
+                              _availableTables = [];
+                            });
+                          }
+                        : null,
+                  ),
+                  const SizedBox(width: 32),
+                  Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryBlue.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '$_peopleCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'orang',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 32),
+                  _buildCounterButton(
+                    icon: Icons.add,
+                    onPressed: () {
+                      setState(() {
+                        _peopleCount++;
+                        _availableTables = [];
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_availableTables.isEmpty)
+            Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: _isSearching ? null : _findAvailableTables,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: _isSearching
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.search, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text(
+                            'Cari Meja Tersedia',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCounterButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: onPressed != null ? AppTheme.primaryBlue : Colors.grey[300],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: onPressed != null
+            ? [
+                BoxShadow(
+                  color: AppTheme.primaryBlue.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildTableSelectionSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.table_restaurant,
+                  color: AppTheme.primaryBlue,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Pilih Meja',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Text(
+                  '${_availableTables.length} tersedia',
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _availableTables.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final table = _availableTables[index];
+                return TableCard(
+                  table: table,
+                  isSelected: _selectedTableId == table['id'],
+                  onTap: () {
+                    setState(() {
+                      _selectedTableId = table['id'];
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSubmitButton() {
+    final canSubmit = _availableTables.isNotEmpty && _selectedTableId != null;
+    
     return Container(
       width: double.infinity,
-      height: 56,
+      height: 64,
       decoration: BoxDecoration(
-        gradient: _availableTables.isEmpty || _selectedTableId == null
-            ? null
-            : LinearGradient(
-                colors: [AppTheme.primaryBlue, AppTheme.primaryBlueDark],
-              ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: _availableTables.isEmpty || _selectedTableId == null
-            ? null
-            : [
+        gradient: canSubmit ? AppTheme.primaryGradient : null,
+        color: canSubmit ? null : Colors.grey[300],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: canSubmit
+            ? [
                 BoxShadow(
                   color: AppTheme.primaryBlue.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
                 ),
-              ],
+              ]
+            : null,
       ),
       child: ElevatedButton(
-        onPressed: _availableTables.isEmpty || _selectedTableId == null
-            ? null
-            : _submitReservation,
+        onPressed: canSubmit ? _submitReservation : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _availableTables.isEmpty || _selectedTableId == null
-              ? Colors.grey[300]
-              : Colors.transparent,
+          backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
-        child: const Text(
-          'Konfirmasi Reservasi',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 0.5,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: canSubmit ? Colors.white : Colors.grey[500],
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Konfirmasi Reservasi',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: canSubmit ? Colors.white : Colors.grey[500],
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
