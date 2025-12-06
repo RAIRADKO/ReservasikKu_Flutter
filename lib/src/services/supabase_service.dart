@@ -24,17 +24,24 @@ class ReservationService {
     required DateTime reservationDate,
     required TimeOfDay reservationTime,
   }) async {
+    // Calculate required capacity:
+    // - If even number → capacity is the same
+    // - If odd number → round up (1 → 2, 3 → 4, 5 → 6, etc.)
     int requiredCapacity = peopleCount;
-    if (peopleCount.isOdd && peopleCount >= 3) {
+    if (peopleCount.isOdd) {
       requiredCapacity = peopleCount + 1;
     }
 
+    // Only get tables with exact capacity (not larger)
+    // 2 people → only capacity 2
+    // 3 people (rounded to 4) → only capacity 4
+    // 5 people (rounded to 6) → only capacity 6
     final tables = await client
         .from('tables')
         .select()
-        .gte('capacity', requiredCapacity)
+        .eq('capacity', requiredCapacity)
         .eq('is_active', true)
-        .order('capacity', ascending: true);
+        .order('table_number', ascending: true);
 
     if (tables.isEmpty) return [];
 

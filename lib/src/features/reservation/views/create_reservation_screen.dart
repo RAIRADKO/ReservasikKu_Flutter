@@ -24,15 +24,20 @@ class _CreateReservationScreenState
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = TimeOfDay.now().replacing(hour: 18, minute: 0);
   int _peopleCount = 2;
+  int _requiredCapacity = 2;
   List<Map<String, dynamic>> _availableTables = [];
   int? _selectedTableId;
   bool _isSearching = false;
+  bool _hasCheckedTables = false;
+  bool _showTableList = false;
+  String? _tableCheckMessage;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _requiredCapacity = _calculateRequiredCapacity(_peopleCount);
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -48,6 +53,80 @@ class _CreateReservationScreenState
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Calculate required capacity based on people count
+  int _calculateRequiredCapacity(int peopleCount) {
+    // If even number → capacity is the same
+    // If odd number → round up (1 → 2, 3 → 4, 5 → 6, etc.)
+    if (peopleCount.isOdd) {
+      return peopleCount + 1;
+    }
+    return peopleCount;
+  }
+
+  // Check available tables automatically when people count changes
+  Future<void> _checkAvailableTables() async {
+    if (!mounted) return;
+
+    // Calculate required capacity
+    final capacity = _calculateRequiredCapacity(_peopleCount);
+    setState(() {
+      _requiredCapacity = capacity;
+      _hasCheckedTables = false;
+      _availableTables = [];
+      _selectedTableId = null;
+      _showTableList = false;
+      _tableCheckMessage = null;
+    });
+
+    // Check if date and time are set
+    if (_selectedDate == null || _selectedTime == null) {
+      return;
+    }
+
+    try {
+      final service = ref.read(reservationProvider);
+      final tables = await service.getAvailableTables(
+        peopleCount: _peopleCount,
+        reservationDate: _selectedDate,
+        reservationTime: _selectedTime,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _hasCheckedTables = true;
+        _availableTables = tables;
+        if (tables.isEmpty) {
+          _tableCheckMessage = 'Tidak ada meja yang sesuai untuk jumlah orang ini.';
+        } else {
+          _tableCheckMessage = null;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _hasCheckedTables = true;
+        _tableCheckMessage = 'Error: ${e.toString()}';
+      });
+    }
+  }
+
+  // Show table selection dialog or navigate to table list
+  void _showTableSelection() {
+    if (_availableTables.isEmpty) {
+      showToast(context, 'Tidak ada meja yang sesuai untuk jumlah orang ini.', error: true);
+      return;
+    }
+
+    // Show the table list
+    setState(() {
+      _showTableList = true;
+    });
+    
+    // Show message that tables are available
+    showToast(context, '${_availableTables.length} meja tersedia! Pilih meja di bawah.');
   }
 
   Future<void> _findAvailableTables() async {
@@ -88,10 +167,16 @@ class _CreateReservationScreenState
         _availableTables = tables;
         _selectedTableId = tables.isNotEmpty ? tables.first['id'] : null;
         _isSearching = false;
+        _hasCheckedTables = true;
+        if (tables.isEmpty) {
+          _tableCheckMessage = 'Tidak ada meja yang sesuai untuk jumlah orang ini.';
+        } else {
+          _tableCheckMessage = null;
+        }
       });
 
       if (tables.isEmpty) {
-        showToast(context, 'Tidak ada meja yang tersedia untuk jumlah orang ini', error: true);
+        showToast(context, 'Tidak ada meja yang sesuai untuk jumlah orang ini.', error: true);
       } else {
         showToast(context, '${tables.length} meja tersedia!');
       }
@@ -154,7 +239,7 @@ class _CreateReservationScreenState
                     const SizedBox(height: 24),
                     _buildPeopleCountSection(),
                     const SizedBox(height: 24),
-                    if (_availableTables.isNotEmpty) ...[
+                    if (_showTableList && _availableTables.isNotEmpty && _hasCheckedTables) ...[
                       _buildTableSelectionSection(),
                       const SizedBox(height: 24),
                     ],
@@ -341,7 +426,12 @@ class _CreateReservationScreenState
                       setState(() {
                         _selectedDate = selected;
                         _availableTables = [];
+                        _hasCheckedTables = false;
+                        _showTableList = false;
+                        _tableCheckMessage = null;
                       });
+                      // Re-check tables after date change
+                      _checkAvailableTables();
                     }
                   },
                   borderRadius: BorderRadius.circular(16),
@@ -421,7 +511,12 @@ class _CreateReservationScreenState
                       setState(() {
                         _selectedTime = selected;
                         _availableTables = [];
+                        _hasCheckedTables = false;
+                        _showTableList = false;
+                        _tableCheckMessage = null;
                       });
+                      // Re-check tables after time change
+                      _checkAvailableTables();
                     }
                   },
                   borderRadius: BorderRadius.circular(16),
@@ -531,8 +626,8 @@ class _CreateReservationScreenState
                         ? () {
                             setState(() {
                               _peopleCount--;
-                              _availableTables = [];
                             });
+                            _checkAvailableTables();
                           }
                         : null,
                   ),
@@ -578,16 +673,78 @@ class _CreateReservationScreenState
                     onPressed: () {
                       setState(() {
                         _peopleCount++;
-                        _availableTables = [];
                       });
+                      _checkAvailableTables();
                     },
                   ),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          // Show capacity info
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.lightBlue,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: AppTheme.primaryBlue,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Kapasitas meja yang dibutuhkan: $_requiredCapacity orang',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Show message if no tables found
+          if (_hasCheckedTables && _tableCheckMessage != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.red[700],
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _tableCheckMessage!,
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
-          if (_availableTables.isEmpty)
+          // Show "Pilih Meja" button when tables are available
+          if (_hasCheckedTables && _availableTables.isNotEmpty)
             Container(
               width: double.infinity,
               height: 56,
@@ -603,7 +760,7 @@ class _CreateReservationScreenState
                 ],
               ),
               child: ElevatedButton(
-                onPressed: _isSearching ? null : _findAvailableTables,
+                onPressed: _isSearching ? null : _showTableSelection,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -623,10 +780,10 @@ class _CreateReservationScreenState
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.search, color: Colors.white),
+                          Icon(Icons.table_restaurant, color: Colors.white),
                           SizedBox(width: 12),
                           Text(
-                            'Cari Meja Tersedia',
+                            'Pilih Meja',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
